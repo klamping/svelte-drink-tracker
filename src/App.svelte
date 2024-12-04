@@ -19,7 +19,7 @@
     const storedTotal = localStorage.getItem('totalDrinkUnits') !== null ? parseFloat(localStorage.getItem('totalDrinkUnits')) : 0;
     totalDrinkUnits.set(storedTotal);
 
-    const storedLog = JSON.parse(localStorage.getItem('drinkLog')) || getDummyData();
+    const storedLog = JSON.parse(localStorage.getItem('drinkLog')) || [];
     drinkLog.set(storedLog);
     updateDrinkCounts(storedLog);
     loadChartJs(() => createChart(storedLog));
@@ -31,21 +31,7 @@
     }
   });
 
-  function getDummyData() {
-    const now = new Date();
-    const dummyData = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(now);
-      date.setDate(now.getDate() - i);
-      dummyData.push({
-        timestamp: date.toLocaleString(),
-        drinkUnits: (Math.random() * 2 + 0.5).toFixed(1),
-        drinkSize: Math.floor(Math.random() * 10) + 10,
-        alcoholPercentage: (Math.random() * 3 + 4).toFixed(1)
-      });
-    }
-    return dummyData;
-  }
+  
 
   function addDrink(event) {
     event.preventDefault();
@@ -256,4 +242,3 @@
     margin-bottom: 5px;
   }
 </style>
-	
