@@ -15,6 +15,7 @@
   const remainingDrinksToday = writable(0);
   const averageDrinksLast7Days = writable(0);
   const previewDrinkAmount = writable(null);
+  const previewCalories = writable(null);
 
   // Load existing drinks data from localStorage when the component mounts
   onMount(() => {
@@ -173,6 +174,10 @@
     document.head.appendChild(script);
   }
 
+  function gramsOfAlcohol(drinkAmount) {
+	return drinkAmount * 14;
+  }	
+
   function displayDrinkAmount(event) {
     const form = event.currentTarget;
     const drinkSize = parseFloat(form.querySelector('#drink-size')?.value);
@@ -184,17 +189,25 @@
       const standardDrinkAmount = standardDrinkSize * (standardAlcoholPercentage / 100);
       const currentDrinkAmount = drinkSize * (alcoholPercentage / 100);
       previewDrinkAmount.set(currentDrinkAmount / standardDrinkAmount);
+	  const estimatedCalories = Math.ceil(7 * gramsOfAlcohol(currentDrinkAmount));
+	  previewCalories.set(estimatedCalories);
     } else {
       previewDrinkAmount.set(null);
     }
   }
+
+  const RainbowBorder = {
+	border: '1px solid',
+	borderImage: 'linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%)',
+	borderImageSlice: 1
+  };
 </script>
 
 <SvelteUIProvider withGlobalStyles themeObserver={'dark'}>
 	<Container>
 		<Title order={1} style="margin: 1rem 0;">The Annoyingly Correct Drink Tracker</Title>
 		<Stack space="xl">
-			<Card withBorder padding="lg" shadow="sm">
+			<Card padding="lg" shadow="sm" css={RainbowBorder}>
 				<form on:submit={addDrink} on:input={displayDrinkAmount}>
 					<InputWrapper label="Size of drink (oz):" size="lg">
 						<NumberInput 
@@ -228,9 +241,18 @@
 
 					<Space h="sm" />
 					<Group spacing="xs">
-						<Text>Amount:</Text>
+						<Text>Drink Amount:</Text>
 						{#if $previewDrinkAmount !== null}
-							<Text>{$previewDrinkAmount.toFixed(2)} Standard Drinks</Text>
+							<Text>{$previewDrinkAmount.toFixed(2)}</Text>
+						{:else}
+							<Skeleton height={6} animate={false} width={15} />
+						{/if}
+					</Group>
+					<Space h="md" />
+					<Group spacing="xs">
+						<Text>Est. Alcohol Calories:</Text>
+						{#if $previewCalories !== null}
+							<Text>{$previewCalories}</Text>
 						{:else}
 							<Skeleton height={6} animate={false} width={15} />
 						{/if}
@@ -312,13 +334,3 @@
 		</Stack>
 	</Container>
 </SvelteUIProvider>
-
-<style>
-  ul {
-    list-style-type: none;
-    padding-left: 0;
-  }
-  li {
-    margin-bottom: 5px;
-  }
-</style>
