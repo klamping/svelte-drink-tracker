@@ -88,7 +88,7 @@
 
   function updateDrinkCounts(log) {
     const now = new Date();
-	now.setHours(0, 0, 0, 0);
+	  now.setHours(0, 0, 0, 0);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(now.getDate() - 7);
     const threeDaysAgo = new Date();
@@ -125,11 +125,36 @@
     averageDrinksLast7Days.set(average);
   }
 
+  const getLast7DaysLabels = () => {
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const result = [];
+    const today = new Date();
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        const dayOfWeek = daysOfWeek[date.getDay()];
+        const dayOfMonth = date.getDate();
+        result.push({
+          logDate: date.toLocaleDateString(),
+          display: `${dayOfWeek}, ${dayOfMonth}`
+        });
+    }
+
+    return result.reverse(); // Reverse to maintain order from oldest to newest
+  };
+
   function createChart(log) {
     const ctx = document.getElementById('drinksChart').getContext('2d');
     const groupedDrinks = groupDrinksByDay(log);
-    const labels = Object.keys(groupedDrinks).reverse();
-    const data = labels.map(date => groupedDrinks[date].reduce((sum, entry) => sum + parseFloat(entry.drinkUnits), 0));
+
+    const lastWeek = getLast7DaysLabels();
+    const labels = lastWeek.map(({ display }) => display);
+    const data = lastWeek.map(({ logDate }) => {
+      return Object.hasOwn(groupedDrinks, logDate) ?
+        groupedDrinks[logDate].reduce((sum, entry) => sum + parseFloat(entry.drinkUnits), 0) :
+        0;
+    });
 
     chart = new Chart(ctx, {
       type: 'line',
@@ -176,7 +201,7 @@
 
   function gramsOfAlcohol(drinkAmount) {
 	return drinkAmount * 14;
-  }	
+  }
 
   function displayDrinkAmount(event) {
     const form = event.currentTarget;
@@ -210,7 +235,7 @@
 			<Card padding="lg" shadow="sm" css={RainbowBorder}>
 				<form on:submit={addDrink} on:input={displayDrinkAmount}>
 					<InputWrapper label="Size of drink (oz):" size="lg">
-						<NumberInput 
+						<NumberInput
 							id="drink-size"
 							precision={1}
 							step={0.1}
@@ -225,7 +250,7 @@
 
 					<Space h="sm" />
 					<InputWrapper label="Alcohol percentage (%):" size="lg">
-						<NumberInput 
+						<NumberInput
 							id="alcohol-percentage"
 							precision={1}
 							step={0.1}
