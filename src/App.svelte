@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
-  import { SvelteUIProvider, Group, Center, Button, Space, InputWrapper, NumberInput, Container, Card, Title, Text, Stack, Skeleton } from '@svelteuidev/core';
+  import { SvelteUIProvider, Group, Center, Button, Space, InputWrapper, NumberInput, Container, Card, Title, Text, Stack, Skeleton, Flex } from '@svelteuidev/core';
   import { onDestroy } from 'svelte';
 
   let chart;
@@ -23,9 +23,18 @@
     totalDrinkUnits.set(storedTotal);
 
     const storedLog = JSON.parse(localStorage.getItem('drinkLog')) || [];
-    drinkLog.set(storedLog);
-    updateDrinkCounts(storedLog);
-    loadChartJs(() => createChart(storedLog));
+
+    // parse through the log and filter out any bad data
+    let filteredLog = storedLog.filter(({drinkSize, alcoholPercentage}) => {
+      return !Number.isNaN(Number.parseFloat(drinkSize)) && !Number.isNaN(Number.parseFloat(alcoholPercentage));
+    });
+    if (storedLog.length !== filteredLog.length) {
+
+    }
+
+    drinkLog.set(filteredLog);
+    updateDrinkCounts(filteredLog);
+    loadChartJs(() => createChart(filteredLog));
   });
 
   onDestroy(() => {
@@ -34,19 +43,29 @@
     }
   });
 
-  function addDrink(event) {
-    event.preventDefault();
-
-    // Get input values
-    const drinkSize = parseFloat(event.target.querySelector('#drink-size').value);
-    const alcoholPercentage = parseFloat(event.target.querySelector('#alcohol-percentage').value);
-
+  function getDrinkAmount(drinkSize, alcoholPercentage) {
     // Calculate drink units based on the standard drink size (12 oz at 5%)
     const standardDrinkSize = 12;
     const standardAlcoholPercentage = 5;
     const standardDrinkAmount = standardDrinkSize * (standardAlcoholPercentage / 100);
     const currentDrinkAmount = drinkSize * (alcoholPercentage / 100);
-    const drinkUnits = currentDrinkAmount / standardDrinkAmount;
+    return currentDrinkAmount / standardDrinkAmount;
+  }
+
+  function addDrink(event) {
+    event.preventDefault();
+    const rawDrinkSize = event.target.querySelector('#drink-size').value;
+    const trimmedDrinkSize = rawDrinkSize.replace(/[^\.\d]/g, '');
+
+    const rawAlcPerc = event.target.querySelector('#alcohol-percentage')?.value;
+    const trimmedAlcPerc = rawAlcPerc.replace(/[^\.\d]/g, '')
+
+    // Get input values
+    const drinkSize = parseFloat(trimmedDrinkSize);
+    const alcoholPercentage = parseFloat(trimmedAlcPerc);
+    const entryDate = event.target.querySelector('#entry-date').value || new Date().toISOString();
+
+    const drinkUnits = getDrinkAmount(drinkSize, alcoholPercentage);
 
     // Update total drink units
     totalDrinkUnits.update(n => {
@@ -56,7 +75,7 @@
     });
 
     // Add timestamped entry to drink log
-    const timestamp = new Date().toLocaleString();
+    const timestamp = new Date(entryDate).toLocaleString();
     const newEntry = { timestamp, drinkUnits, drinkSize, alcoholPercentage };
     drinkLog.update(log => {
       const updatedLog = [...log, newEntry];
@@ -205,26 +224,28 @@
 
   function displayDrinkAmount(event) {
     const form = event.currentTarget;
-    const drinkSize = parseFloat(form.querySelector('#drink-size')?.value);
-    const alcoholPercentage = parseFloat(form.querySelector('#alcohol-percentage')?.value);
+    const rawDrinkSize = form.querySelector('#drink-size')?.value;
+    const trimmedDrinkSize = rawDrinkSize.replace(/[^\.\d]/g, '')
+    const drinkSize = parseFloat(trimmedDrinkSize);
+
+    const rawAlcPerc = form.querySelector('#alcohol-percentage')?.value;
+    const trimmedAlcPerc = rawAlcPerc.replace(/[^\.\d]/g, '')
+    const alcoholPercentage = parseFloat(trimmedAlcPerc);
 
     if (!isNaN(drinkSize) && !isNaN(alcoholPercentage)) {
-      const standardDrinkSize = 12;
-      const standardAlcoholPercentage = 5;
-      const standardDrinkAmount = standardDrinkSize * (standardAlcoholPercentage / 100);
-      const currentDrinkAmount = drinkSize * (alcoholPercentage / 100);
-      previewDrinkAmount.set(currentDrinkAmount / standardDrinkAmount);
-	  const estimatedCalories = Math.ceil(7 * gramsOfAlcohol(currentDrinkAmount));
-	  previewCalories.set(estimatedCalories);
+      const currentDrinkAmount = getDrinkAmount(drinkSize, alcoholPercentage);
+      previewDrinkAmount.set(currentDrinkAmount);
+      const estimatedCalories = Math.ceil(7 * gramsOfAlcohol(currentDrinkAmount));
+      previewCalories.set(estimatedCalories);
     } else {
       previewDrinkAmount.set(null);
     }
   }
 
   const RainbowBorder = {
-	border: '1px solid',
-	borderImage: 'linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%)',
-	borderImageSlice: 1
+    border: '1px solid',
+    borderImage: 'linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%)',
+    borderImageSlice: 1
   };
 </script>
 
@@ -245,6 +266,12 @@
 							hideControls
 							size="lg"
 							min={0}
+              parser={(value) => value.replace(/[^\.\d]/g, '')}
+              formatter={(value) =>
+                  !Number.isNaN(parseFloat(value))
+                  ? value.replace(/[^\.\d]/g, '')
+                  : ''
+              }
 						/>
 					</InputWrapper>
 
@@ -265,26 +292,28 @@
 					</InputWrapper>
 
 					<Space h="sm" />
-					<Group spacing="xs">
-						<Text>Drink Amount:</Text>
-						{#if $previewDrinkAmount !== null}
-							<Text>{$previewDrinkAmount.toFixed(2)}</Text>
-						{:else}
-							<Skeleton height={6} animate={false} width={15} />
-						{/if}
-					</Group>
-					<Space h="md" />
-					<Group spacing="xs">
-						<Text>Est. Alcohol Calories:</Text>
-						{#if $previewCalories !== null}
-							<Text>{$previewCalories}</Text>
-						{:else}
-							<Skeleton height={6} animate={false} width={15} />
-						{/if}
-					</Group>
+          <Flex justify="space-between" wrap="nowrap" gap="lg">
+            <Group spacing="xs">
+              <Text>Drink Amount:</Text>
+              {#if $previewDrinkAmount !== null}
+                <Text>{$previewDrinkAmount.toFixed(2)}</Text>
+              {:else}
+                <Skeleton height={6} animate={false} width={15} />
+              {/if}
+            </Group>
+            <Group spacing="xs">
+              <Text>Est. Cals:</Text>
+              {#if $previewCalories !== null}
+                <Text>{$previewCalories}</Text>
+              {:else}
+                <Skeleton height={6} animate={false} width={15} />
+              {/if}
+            </Group>
+            <input id="entry-date" type="date" style="width:2em;background:#495057;border:0;"/>
+          </Flex>
 					<Space h="xl" />
 					<Center>
-						<Button variant="gradient" gradient={{ from: 'violet', to: 'pink', deg: 50 }} radius="md" size="lg" fullSize>
+						<Button variant="gradient" gradient={{ from: 'violet', to: 'pink', deg: 50 }} radius="md" size="lg" fullSize >
 							Add Drink
 						</Button>
 					</Center>
@@ -337,17 +366,13 @@
 				<Title order={2}>Drink Log</Title>
 				{#each Object.entries(groupDrinksByDay($drinkLog)) as [date, entries]}
 				<Title order={3} style="margin-top: 1rem;">{date}</Title>
-				{#if entries.length > 0}
-					<ul>
-					{#each entries as { timestamp, drinkUnits, drinkSize, alcoholPercentage }}
-						<li>
-						<strong>{timestamp}</strong>: {parseFloat(drinkUnits).toFixed(2)} (<em>{drinkSize} oz, {alcoholPercentage}%</em>)
-						</li>
-					{/each}
-					</ul>
-				{:else}
-					<Text>🎉 No drinks for today!</Text>
-				{/if}
+        <ul>
+        {#each entries as { timestamp, drinkUnits, drinkSize, alcoholPercentage }}
+          <li>
+          <strong>{timestamp}</strong>: {parseFloat(drinkUnits).toFixed(2)} (<em>{drinkSize} oz, {alcoholPercentage}%</em>)
+          </li>
+        {/each}
+        </ul>
 				{/each}
 			</Card>
 
