@@ -63,7 +63,9 @@
     // Get input values
     const drinkSize = parseFloat(trimmedDrinkSize);
     const alcoholPercentage = parseFloat(trimmedAlcPerc);
-    const entryDate = event.target.querySelector('#entry-date').value || new Date().toISOString();
+    const entryDateValue = event.target.querySelector('#entry-date').value;
+    const entryDate = entryDateValue ? new Date(entryDateValue) : new Date();
+    const entryDateTimestamp = entryDate.toISOString();
 
     const drinkUnits = getDrinkAmount(drinkSize, alcoholPercentage);
 
@@ -244,8 +246,9 @@
 
   const RainbowBorder = {
     border: '1px solid',
-    borderImage: 'linear-gradient(to bottom right, #b827fc 0%, #2c90fc 25%, #b8fd33 50%, #fec837 75%, #fd1892 100%)',
-    borderImageSlice: 1
+    borderImage: 'conic-gradient(from var(--angle), red, yellow, lime, aqua, blue, magenta, red) 1',
+	  animation: '10s rotate linear infinite',
+    '--angle': '0deg'
   };
 </script>
 
@@ -309,7 +312,7 @@
                 <Skeleton height={6} animate={false} width={15} />
               {/if}
             </Group>
-            <input id="entry-date" type="date" style="width:2em;background:#495057;border:0;"/>
+            <input id="entry-date" type="datetime-local" style="width:2em;background:#495057;border:0;"/>
           </Flex>
 					<Space h="xl" />
 					<Center>

@@ -61,3 +61,15 @@ button:not(:disabled):active {
 button:focus {
 	border-color: #666;
 }
+
+@keyframes rotate {
+	to {
+		--angle: 360deg;
+	}
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
