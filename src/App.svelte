@@ -31,6 +31,8 @@
   const averageDrinksLast7Days = writable(0);
   const previewDrinkAmount = writable(null);
   const previewCalories = writable(null);
+  const showAllLogs = writable(false);
+import { startOfToday, subDays, parseISO } from 'date-fns';
 
   // Load existing drinks data from localStorage when the component mounts
   onMount(() => {
@@ -117,28 +119,27 @@
 
   function groupDrinksByDay(log) {
     const timeLog = log.reduce((acc, entry) => {
-      const date = new Date(entry.timestamp).toLocaleDateString();
+      const dateObj = new Date(entry.timestamp);
+      const date = dateObj.toLocaleDateString();
+      const dayOfWeek = dateObj.toLocaleDateString(undefined, { weekday: 'long' });
       if (!acc[date]) {
-        acc[date] = [];
+        acc[date] = { totalUnits: 0, entries: [], dayOfWeek };
       }
-      const updatedEntry = {
+      acc[date].entries.push({
         ...entry,
-        timestamp: new Date(entry.timestamp).toLocaleTimeString(),
-      };
-      acc[date].push(updatedEntry);
+        timestamp: dateObj.toLocaleTimeString(),
+      });
+      acc[date].totalUnits += parseFloat(entry.drinkUnits);
       return acc;
     }, {});
 
-    return timeLog;
+    return Object.entries(timeLog).sort((a, b) => new Date(b[0]) - new Date(a[0]));
   }
 
   function updateDrinkCounts(log) {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(now.getDate() - 7);
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(now.getDate() - 3);
+    const now = startOfToday();
+    const sevenDaysAgo = subDays(now, 7);
+    const threeDaysAgo = subDays(now, 3);
 
     let countLast7Days = 0;
     let countLast3Days = 0;
@@ -146,14 +147,16 @@
 
     log.forEach((entry) => {
       const entryDate = new Date(entry.timestamp);
+      console.log(entry.timestamp)
+      console.log(sevenDaysAgo)
       if (entryDate >= sevenDaysAgo) {
-        countLast7Days += parseFloat(entry.drinkUnits);
+        countLast7Days += parseFloat(entry.drinkUnits) || 0;
       }
       if (entryDate >= threeDaysAgo) {
-        countLast3Days += parseFloat(entry.drinkUnits);
+        countLast3Days += parseFloat(entry.drinkUnits) || 0;
       }
       if (entryDate >= now) {
-        countToday += parseFloat(entry.drinkUnits);
+        countToday += parseFloat(entry.drinkUnits) || 0;
       }
     });
 
@@ -274,6 +277,16 @@
     } else {
       previewDrinkAmount.set(null);
     }
+  }
+
+  const toggleShowAllLogs = () => {
+    showAllLogs.update(value => !value);
+  };
+
+  function filterRecentDays(log, days) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    return log.filter(entry => new Date(entry.timestamp) >= cutoffDate);
   }
 
   const RainbowBorder = {
@@ -417,18 +430,41 @@
 
       <Card withBorder padding="lg" shadow="sm">
         <Title order={2}>Drink Log</Title>
-        {#each Object.entries(groupDrinksByDay($drinkLog)) as [date, entries]}
-          <Title order={3} style="margin-top: 1rem;">{date}</Title>
-          <ul>
-            {#each entries as { timestamp, drinkUnits, drinkSize, alcoholPercentage }}
-              <li>
-                <strong>{timestamp}</strong>: {parseFloat(drinkUnits).toFixed(
-                  2,
-                )} (<em>{drinkSize} oz, {alcoholPercentage}%</em>)
-              </li>
-            {/each}
-          </ul>
-        {/each}
+        {#if !$showAllLogs}
+          {#each groupDrinksByDay(filterRecentDays($drinkLog, 7)) as [date, { totalUnits, entries, dayOfWeek }]}
+            <Group noWrap spacing="xs" align="center" style="margin-top: 1rem;">
+              <Title order={3}>
+                {dayOfWeek}, {date}
+                <Text color='gray' root="span"><em>({totalUnits.toFixed(2)})</em></Text>
+              </Title>
+            </Group>
+            <ul>
+              {#each entries as { timestamp, drinkUnits, drinkSize, alcoholPercentage }}
+                <li>
+                  <strong>{timestamp}</strong>: {parseFloat(drinkUnits).toFixed(2)} (<em>{drinkSize} oz, {alcoholPercentage}%</em>)
+                </li>
+              {/each}
+            </ul>
+          {/each}
+          <Button on:click={toggleShowAllLogs}>View Full Log</Button>
+        {:else}
+          {#each groupDrinksByDay($drinkLog) as [date, { totalUnits, entries, dayOfWeek }]}
+            <Group noWrap spacing="xs" align="center" style="margin-top: 1rem;">
+              <Title order={3}>
+                {dayOfWeek}, {date}
+                <Text color='gray' root="span"><em>({totalUnits.toFixed(2)})</em></Text>
+              </Title>
+            </Group>
+            <ul>
+              {#each entries as { timestamp, drinkUnits, drinkSize, alcoholPercentage }}
+                <li>
+                  <strong>{timestamp}</strong>: {parseFloat(drinkUnits).toFixed(2)} (<em>{drinkSize} oz, {alcoholPercentage}%</em>)
+                </li>
+              {/each}
+            </ul>
+          {/each}
+          <Button on:click={toggleShowAllLogs}>Hide Full Log</Button>
+        {/if}
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
