@@ -27,8 +27,11 @@
   const drinksLast7Days = writable(0);
   const drinksLast3Days = writable(0);
   const drinksToday = writable(0);
+  const gramsToday = writable(0);
   const remainingDrinksToday = writable(0);
   const averageDrinksLast7Days = writable(0);
+  const gramsLast7Days = writable(0);
+  const gramsLast3Days = writable(0);
   const previewDrinkAmount = writable(null);
   const previewCalories = writable(null);
   const showAllLogs = writable(false);
@@ -138,31 +141,39 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
 
   function updateDrinkCounts(log) {
     const now = startOfToday();
-    const sevenDaysAgo = subDays(now, 7);
-    const threeDaysAgo = subDays(now, 3);
+    const sevenDaysAgo = subDays(now, 6);
+    const threeDaysAgo = subDays(now, 2);
 
     let countLast7Days = 0;
     let countLast3Days = 0;
     let countToday = 0;
+    let gramsCountLast7Days = 0;
+    let gramsCountLast3Days = 0;
+    let gramsCountToday = 0;
 
     log.forEach((entry) => {
       const entryDate = new Date(entry.timestamp);
-      console.log(entry.timestamp)
-      console.log(sevenDaysAgo)
+      const gramsForEntry = gramsOfAlcohol(parseFloat(entry.drinkUnits) || 0);
       if (entryDate >= sevenDaysAgo) {
         countLast7Days += parseFloat(entry.drinkUnits) || 0;
+        gramsCountLast7Days += gramsForEntry;
       }
       if (entryDate >= threeDaysAgo) {
         countLast3Days += parseFloat(entry.drinkUnits) || 0;
+        gramsCountLast3Days += gramsForEntry;
       }
       if (entryDate >= now) {
         countToday += parseFloat(entry.drinkUnits) || 0;
+        gramsCountToday += gramsForEntry;
       }
     });
 
     drinksLast7Days.set(countLast7Days);
     drinksLast3Days.set(countLast3Days);
     drinksToday.set(countToday);
+    gramsLast7Days.set(gramsCountLast7Days);
+    gramsLast3Days.set(gramsCountLast3Days);
+    gramsToday.set(gramsCountToday);
 
     // Calculate remaining drinks to stay below 15 drinks in the past 7 days
     const maxDrinksIn7Days = 15;
@@ -195,16 +206,13 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
 
   function createChart(log) {
     const ctx = document.getElementById("drinksChart").getContext("2d");
-    const groupedDrinks = groupDrinksByDay(log);
+    const groupedDrinks = Object.fromEntries(groupDrinksByDay(log));
 
     const lastWeek = getLast7DaysLabels();
     const labels = lastWeek.map(({ display }) => display);
     const data = lastWeek.map(({ logDate }) => {
       return Object.hasOwn(groupedDrinks, logDate)
-        ? groupedDrinks[logDate].reduce(
-            (sum, entry) => sum + parseFloat(entry.drinkUnits),
-            0,
-          )
+        ? groupedDrinks[logDate].totalUnits
         : 0;
     });
 
@@ -394,6 +402,24 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
         <Title order={2}>Drinks in the Past 7 Days</Title>
         <Space h="sm" />
         <Text>{$drinksLast7Days.toFixed(2)} Standard Drinks</Text>
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Alcohol Consumed Today</Title>
+        <Space h="sm" />
+        <Text>{$gramsToday.toFixed(1)} grams</Text>
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Alcohol in the Past 3 Days</Title>
+        <Space h="sm" />
+        <Text>{$gramsLast3Days.toFixed(1)} grams</Text>
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Alcohol in the Past 7 Days</Title>
+        <Space h="sm" />
+        <Text>{$gramsLast7Days.toFixed(1)} grams</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
