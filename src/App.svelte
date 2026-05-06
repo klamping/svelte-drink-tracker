@@ -33,6 +33,7 @@
   const gramsLast7Days = writable(0);
   const gramsLast3Days = writable(0);
   const previewDrinkAmount = writable(null);
+  const previewGrams = writable(null);
   const previewCalories = writable(null);
   const showAllLogs = writable(false);
 import { startOfToday, subDays, parseISO } from 'date-fns';
@@ -118,6 +119,7 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     // Clear form inputs
     event.target.reset();
     previewDrinkAmount.set(null);
+    previewGrams.set(null);
   }
 
   function groupDrinksByDay(log) {
@@ -281,9 +283,12 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       const estimatedCalories = Math.ceil(
         7 * gramsOfAlcohol(currentDrinkAmount),
       );
+      const estimatedGrams = gramsOfAlcohol(currentDrinkAmount);
       previewCalories.set(estimatedCalories);
+      previewGrams.set(estimatedGrams);
     } else {
       previewDrinkAmount.set(null);
+      previewGrams.set(null);
     }
   }
 
@@ -354,7 +359,9 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
             <Group spacing="xs">
               <Text>Drink Amount:</Text>
               {#if $previewDrinkAmount !== null}
-                <Text>{$previewDrinkAmount.toFixed(2)}</Text>
+                <Text
+                  >{$previewDrinkAmount.toFixed(2)} ({$previewGrams.toFixed(0)}g)</Text
+                >
               {:else}
                 <Skeleton height={6} animate={false} width={15} />
               {/if}
