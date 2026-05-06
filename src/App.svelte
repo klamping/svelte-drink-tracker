@@ -32,6 +32,7 @@
   const averageDrinksLast7Days = writable(0);
   const gramsLast7Days = writable(0);
   const gramsLast3Days = writable(0);
+  const caloriesDeltaLast7Days = writable(0);
   const previewDrinkAmount = writable(null);
   const previewGrams = writable(null);
   const previewCalories = writable(null);
@@ -188,6 +189,11 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     // Calculate 7-day running average of drinks per day
     const average = countLast7Days / 7;
     averageDrinksLast7Days.set(average);
+
+    const maxDrinksIn7DaysCalories = maxDrinksIn7Days * gramsOfAlcohol(12, 5) * 7;
+    const consumedCaloriesLast7Days = gramsCountLast7Days * 7;
+    const caloriesDelta = maxDrinksIn7DaysCalories - consumedCaloriesLast7Days;
+    caloriesDeltaLast7Days.set(caloriesDelta);
   }
 
   const getLast7DaysLabels = () => {
@@ -436,6 +442,16 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
           >You can have up to {$remainingDrinksToday.toFixed(2)} more Standard Drinks
           today.</Text
         >
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Calories Saved by Staying Below 15 Drinks</Title>
+        <Space h="sm" />
+        {#if $caloriesDeltaLast7Days >= 0}
+          <Text>{$caloriesDeltaLast7Days.toFixed(0)} calories saved in the past 7 days</Text>
+        {:else}
+          <Text>{Math.abs($caloriesDeltaLast7Days).toFixed(0)} calories extra in the past 7 days</Text>
+        {/if}
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
