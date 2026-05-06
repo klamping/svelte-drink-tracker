@@ -400,6 +400,7 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
         <Space h="sm" />
         {#if $drinksToday > 0}
           <Text>{$drinksToday.toFixed(2)} Standard Drinks</Text>
+          <Text>{$gramsToday.toFixed(1)} grams</Text>
         {:else}
           <Text>🎉 No drinks for today! Wanna keep it that way??</Text>
         {/if}
@@ -409,24 +410,14 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
         <Title order={2}>Drinks in the Past 7 Days</Title>
         <Space h="sm" />
         <Text>{$drinksLast7Days.toFixed(2)} Standard Drinks</Text>
-      </Card>
-
-      <Card withBorder padding="lg" shadow="sm">
-        <Title order={2}>Alcohol Consumed Today</Title>
-        <Space h="sm" />
-        <Text>{$gramsToday.toFixed(1)} grams</Text>
-      </Card>
-
-      <Card withBorder padding="lg" shadow="sm">
-        <Title order={2}>Alcohol in the Past 3 Days</Title>
-        <Space h="sm" />
-        <Text>{$gramsLast3Days.toFixed(1)} grams</Text>
-      </Card>
-
-      <Card withBorder padding="lg" shadow="sm">
-        <Title order={2}>Alcohol in the Past 7 Days</Title>
-        <Space h="sm" />
         <Text>{$gramsLast7Days.toFixed(1)} grams</Text>
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Drinks in the Past 3 Days</Title>
+        <Space h="sm" />
+        <Text>{$drinksLast3Days.toFixed(2)} Standard Drinks</Text>
+        <Text>{$gramsLast3Days.toFixed(1)} grams</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
@@ -434,12 +425,6 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
         <Space h="sm" />
         <Text>{$averageDrinksLast7Days.toFixed(2)} Standard Drinks per Day</Text
         >
-      </Card>
-
-      <Card withBorder padding="lg" shadow="sm">
-        <Title order={2}>Drinks in the Past 3 Days</Title>
-        <Space h="sm" />
-        <Text>{$drinksLast3Days.toFixed(2)} Standard Drinks</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
