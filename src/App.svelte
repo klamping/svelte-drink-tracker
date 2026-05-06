@@ -33,6 +33,9 @@
   const gramsLast7Days = writable(0);
   const gramsLast3Days = writable(0);
   const caloriesDeltaLast7Days = writable(0);
+  const caloriesConsumedLast7Days = writable(0);
+  const daysWithoutDrinkingPastMonth = writable(0);
+  const daysTrackedPastMonth = writable(0);
   const previewDrinkAmount = writable(null);
   const previewGrams = writable(null);
   const previewCalories = writable(null);
@@ -153,6 +156,8 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     let gramsCountLast7Days = 0;
     let gramsCountLast3Days = 0;
     let gramsCountToday = 0;
+    const drinkingDaysPastMonth = new Set();
+    const monthAgo = subDays(now, 29);
 
     log.forEach((entry) => {
       const entryDate = new Date(entry.timestamp);
@@ -171,6 +176,9 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       if (entryDate >= now) {
         countToday += parseFloat(entry.drinkUnits) || 0;
         gramsCountToday += gramsForEntry;
+      }
+      if (entryDate >= monthAgo) {
+        drinkingDaysPastMonth.add(entryDate.toDateString());
       }
     });
 
@@ -193,7 +201,25 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     const maxDrinksIn7DaysCalories = maxDrinksIn7Days * gramsOfAlcohol(12, 5) * 7;
     const consumedCaloriesLast7Days = gramsCountLast7Days * 7;
     const caloriesDelta = maxDrinksIn7DaysCalories - consumedCaloriesLast7Days;
+    caloriesConsumedLast7Days.set(consumedCaloriesLast7Days);
     caloriesDeltaLast7Days.set(caloriesDelta);
+
+    const earliestEntryDate = log.length
+      ? new Date(
+          Math.min(
+            ...log.map((entry) => new Date(entry.timestamp).getTime()),
+          ),
+        )
+      : now;
+    const trackingStart = earliestEntryDate > monthAgo ? earliestEntryDate : monthAgo;
+    const trackingDays = Math.max(
+      1,
+      Math.floor((now - trackingStart) / (1000 * 60 * 60 * 24)) + 1,
+    );
+    daysTrackedPastMonth.set(trackingDays);
+    daysWithoutDrinkingPastMonth.set(
+      Math.max(0, trackingDays - drinkingDaysPastMonth.size),
+    );
   }
 
   const getLast7DaysLabels = () => {
@@ -447,11 +473,18 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       <Card withBorder padding="lg" shadow="sm">
         <Title order={2}>Calories Saved by Staying Below 15 Drinks</Title>
         <Space h="sm" />
+        <Text>{Math.round($caloriesConsumedLast7Days)} calories consumed in the past 7 days</Text>
         {#if $caloriesDeltaLast7Days >= 0}
           <Text>{$caloriesDeltaLast7Days.toFixed(0)} calories saved in the past 7 days</Text>
         {:else}
           <Text>{Math.abs($caloriesDeltaLast7Days).toFixed(0)} calories extra in the past 7 days</Text>
         {/if}
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Days Without Drinking (Past Month)</Title>
+        <Space h="sm" />
+        <Text>{$daysWithoutDrinkingPastMonth} alcohol-free days out of {$daysTrackedPastMonth} tracked days</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
