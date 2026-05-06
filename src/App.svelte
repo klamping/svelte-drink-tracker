@@ -36,6 +36,9 @@
   const caloriesConsumedLast7Days = writable(0);
   const daysWithoutDrinkingPastMonth = writable(0);
   const daysTrackedPastMonth = writable(0);
+  const weeklyAverage30Days = writable(null);
+  const weeklyAverage60Days = writable(null);
+  const weeklyAverage90Days = writable(null);
   const previewDrinkAmount = writable(null);
   const previewGrams = writable(null);
   const previewCalories = writable(null);
@@ -156,8 +159,14 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     let gramsCountLast7Days = 0;
     let gramsCountLast3Days = 0;
     let gramsCountToday = 0;
+    let drinksLast30Days = 0;
+    let drinksLast60Days = 0;
+    let drinksLast90Days = 0;
     const drinkingDaysPastMonth = new Set();
     const monthAgo = subDays(now, 29);
+    const thirtyDaysAgo = subDays(now, 30);
+    const sixtyDaysAgo = subDays(now, 60);
+    const ninetyDaysAgo = subDays(now, 90);
 
     log.forEach((entry) => {
       const entryDate = new Date(entry.timestamp);
@@ -179,6 +188,15 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       }
       if (entryDate >= monthAgo) {
         drinkingDaysPastMonth.add(entryDate.toDateString());
+      }
+      if (entryDate >= thirtyDaysAgo) {
+        drinksLast30Days += parseFloat(entry.drinkUnits) || 0;
+      }
+      if (entryDate >= sixtyDaysAgo) {
+        drinksLast60Days += parseFloat(entry.drinkUnits) || 0;
+      }
+      if (entryDate >= ninetyDaysAgo) {
+        drinksLast90Days += parseFloat(entry.drinkUnits) || 0;
       }
     });
 
@@ -220,6 +238,14 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     daysWithoutDrinkingPastMonth.set(
       Math.max(0, trackingDays - drinkingDaysPastMonth.size),
     );
+
+    const hasAtLeast30Days = log.some((entry) => new Date(entry.timestamp) <= thirtyDaysAgo);
+    const hasAtLeast60Days = log.some((entry) => new Date(entry.timestamp) <= sixtyDaysAgo);
+    const hasAtLeast90Days = log.some((entry) => new Date(entry.timestamp) <= ninetyDaysAgo);
+
+    weeklyAverage30Days.set(hasAtLeast30Days ? drinksLast30Days / (30 / 7) : null);
+    weeklyAverage60Days.set(hasAtLeast60Days ? drinksLast60Days / (60 / 7) : null);
+    weeklyAverage90Days.set(hasAtLeast90Days ? drinksLast90Days / (90 / 7) : null);
   }
 
   const getLast7DaysLabels = () => {
@@ -433,17 +459,16 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
         <Title order={2}>Total Drinks Today</Title>
         <Space h="sm" />
         {#if $drinksToday > 0}
-          <Text>{$drinksToday.toFixed(2)} Standard Drinks</Text>
-          <Text>{$gramsToday.toFixed(1)} grams</Text>
+          <Text>{$drinksToday.toFixed(2)} Drinks ({$gramsToday.toFixed(1)}g)</Text>
         {:else}
-          <Text>🎉 No drinks for today! Wanna keep it that way??</Text>
+          <Text>🎉 No drinks for today! You could keep it that way</Text>
         {/if}
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
         <Title order={2}>Drinks in the Past 7 Days</Title>
         <Space h="sm" />
-        <Text>{$drinksLast7Days.toFixed(2)} Standard Drinks ({$gramsLast7Days.toFixed(1)}g)</Text>
+        <Text>{$drinksLast7Days.toFixed(2)} Drinks ({$gramsLast7Days.toFixed(1)}g)</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
@@ -453,9 +478,9 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
-        <Title order={2}>7-Day Running Average of Drinks per Day</Title>
+        <Title order={2}>7-Day Running Average of Drinks/Day</Title>
         <Space h="sm" />
-        <Text>{$averageDrinksLast7Days.toFixed(2)} Standard Drinks per Day</Text
+        <Text>{$averageDrinksLast7Days.toFixed(2)} Drinks</Text
         >
       </Card>
 
@@ -482,9 +507,17 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
-        <Title order={2}>Days Without Drinking (Past Month)</Title>
+        <Title order={2}>Days Without Drinking</Title>
         <Space h="sm" />
-        <Text>{$daysWithoutDrinkingPastMonth} alcohol-free days out of {$daysTrackedPastMonth} tracked days</Text>
+        <Text>{$daysWithoutDrinkingPastMonth} alcohol-free days out of the past {$daysTrackedPastMonth} days</Text>
+      </Card>
+
+      <Card withBorder padding="lg" shadow="sm">
+        <Title order={2}>Weekly Drink Averages</Title>
+        <Space h="sm" />
+        <Text>30 days: {$weeklyAverage30Days !== null ? $weeklyAverage30Days.toFixed(2) : "--"} drinks</Text>
+        <Text>60 days: {$weeklyAverage60Days !== null ? $weeklyAverage60Days.toFixed(2) : "--"} drinks</Text>
+        <Text>90 days: {$weeklyAverage90Days !== null ? $weeklyAverage90Days.toFixed(2) : "--"} drinks</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
