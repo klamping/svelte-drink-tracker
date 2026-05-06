@@ -155,7 +155,10 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
 
     log.forEach((entry) => {
       const entryDate = new Date(entry.timestamp);
-      const gramsForEntry = gramsOfAlcohol(parseFloat(entry.drinkUnits) || 0);
+      const gramsForEntry = gramsOfAlcohol(
+        parseFloat(entry.drinkSize) || 0,
+        parseFloat(entry.alcoholPercentage) || 0,
+      );
       if (entryDate >= sevenDaysAgo) {
         countLast7Days += parseFloat(entry.drinkUnits) || 0;
         gramsCountLast7Days += gramsForEntry;
@@ -263,8 +266,9 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     document.head.appendChild(script);
   }
 
-  function gramsOfAlcohol(drinkAmount) {
-    return drinkAmount * 14;
+  function gramsOfAlcohol(ounces, alcoholPercentage) {
+    const abv = alcoholPercentage / 100;
+    return ounces * abv * 29.5735 * 0.789;
   }
 
   function displayDrinkAmount(event) {
@@ -280,10 +284,8 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
     if (!isNaN(drinkSize) && !isNaN(alcoholPercentage)) {
       const currentDrinkAmount = getDrinkAmount(drinkSize, alcoholPercentage);
       previewDrinkAmount.set(currentDrinkAmount);
-      const estimatedCalories = Math.ceil(
-        7 * gramsOfAlcohol(currentDrinkAmount),
-      );
-      const estimatedGrams = gramsOfAlcohol(currentDrinkAmount);
+      const estimatedGrams = gramsOfAlcohol(drinkSize, alcoholPercentage);
+      const estimatedCalories = Math.ceil(7 * estimatedGrams);
       previewCalories.set(estimatedCalories);
       previewGrams.set(estimatedGrams);
     } else {
@@ -409,15 +411,13 @@ import { startOfToday, subDays, parseISO } from 'date-fns';
       <Card withBorder padding="lg" shadow="sm">
         <Title order={2}>Drinks in the Past 7 Days</Title>
         <Space h="sm" />
-        <Text>{$drinksLast7Days.toFixed(2)} Standard Drinks</Text>
-        <Text>{$gramsLast7Days.toFixed(1)} grams</Text>
+        <Text>{$drinksLast7Days.toFixed(2)} Standard Drinks ({$gramsLast7Days.toFixed(1)}g)</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
         <Title order={2}>Drinks in the Past 3 Days</Title>
         <Space h="sm" />
-        <Text>{$drinksLast3Days.toFixed(2)} Standard Drinks</Text>
-        <Text>{$gramsLast3Days.toFixed(1)} grams</Text>
+        <Text>{$drinksLast3Days.toFixed(2)} Drinks ({$gramsLast3Days.toFixed(1)}g)</Text>
       </Card>
 
       <Card withBorder padding="lg" shadow="sm">
